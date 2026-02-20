@@ -22,6 +22,8 @@ interface Complaint {
     timestamp: string;
     userName: string;
     location: string;
+    category?: string;
+    summary?: string;
 }
 
 export default function AdminDashboard() {
@@ -79,14 +81,18 @@ export default function AdminDashboard() {
 
     const stats = {
         total: complaints.length,
-        resolved: complaints.filter(c => c.status === 'RESOLVED').length,
-        pending: complaints.filter(c => c.status === 'RAW' || c.status === 'PENDING').length,
-        urgent: complaints.filter(c => c.urgency === 'High' || c.urgency === 'Critical').length
+        resolved: complaints.filter(c => (c.status || '').toUpperCase() === 'RESOLVED').length,
+        pending: complaints.filter(c => (c.status || '').toUpperCase() !== 'RESOLVED').length,
+        urgent: complaints.filter(c => {
+            const u = (c.urgency || '').trim().toUpperCase();
+            return u === 'CRITICAL' || u === 'HIGH';
+        }).length
     };
 
     const categoryData = Object.entries(
         complaints.reduce((acc: any, curr) => {
-            acc[curr.location] = (acc[curr.location] || 0) + 1;
+            const cat = curr.category || curr.location || 'Other';
+            acc[cat] = (acc[cat] || 0) + 1;
             return acc;
         }, {})
     ).map(([name, value]) => ({ name, value }));
@@ -183,11 +189,16 @@ export default function AdminDashboard() {
                                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${selectedComplaint?.complaintId === c.complaintId ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
                                                         {c.location}
                                                     </span>
-                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${c.urgency === 'High' || c.urgency === 'Critical' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${['HIGH', 'CRITICAL'].includes((c.urgency || '').trim().toUpperCase()) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
                                                         {c.urgency}
                                                     </span>
                                                 </div>
                                                 <h3 className={`font-black tracking-tight truncate ${selectedComplaint?.complaintId === c.complaintId ? 'text-white' : 'text-gray-900'}`}>{c.title}</h3>
+                                                {c.summary && (
+                                                    <p className={`text-[10px] font-semibold line-clamp-1 mt-0.5 ${selectedComplaint?.complaintId === c.complaintId ? 'text-blue-100' : 'text-gray-500'}`}>
+                                                        {c.summary}
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className={`text-right hidden sm:block ${selectedComplaint?.complaintId === c.complaintId ? 'text-blue-100' : 'text-gray-400'}`}>
                                                 <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Submission</p>
