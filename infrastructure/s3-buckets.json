@@ -1,0 +1,8 @@
+{
+  "buckets": {
+    "raw": "complaint-system-raw-data-raka123",
+    "processed": "complaint-system-processed-data-raka123",
+    "structured": "complaint-system-analysis-results-raka123"
+  },
+  "regions": "us-east-1"
+}

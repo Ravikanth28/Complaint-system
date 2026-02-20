@@ -1,0 +1,11 @@
+{
+    "name": "online-complaint-system",
+    "version": "1.0.0",
+    "description": "AWS-native cloud application for complaint registration and analysis",
+    "structure": {
+        "functions": "Lambda compute layers",
+        "glue": "ETL and processing (Spark)",
+        "infrastructure": "Cloud resource configuration",
+        "frontend": "Visual management layer"
+    }
+}
