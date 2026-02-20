@@ -1,10 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { withAuth, AuthUser } from '../shared/auth';
 
 const s3 = new S3Client({ region: 'us-east-1' });
 const RAW_BUCKET = process.env.RAW_BUCKET_NAME || 'complaint-system-raw-data-raka123';
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+const listHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise<APIGatewayProxyResult> => {
     try {
         const listCommand = new ListObjectsV2Command({
             Bucket: RAW_BUCKET,
@@ -41,7 +42,10 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
         console.error('Error listing complaints:', error);
         return {
             statusCode: 500,
+            headers: { 'Access-Control-Allow-Origin': '*' },
             body: JSON.stringify({ message: 'Internal Server Error' })
         };
     }
 };
+
+export const handler = withAuth(listHandler, 'ADMIN');

@@ -3,16 +3,23 @@
     "version": "1.0.0",
     "description": "AWS Lambda functions for the complaint system",
     "scripts": {
-        "build": "npm run build:submit && npm run build:analysis && npm run build:triage && npm run build:chatbot && npm run build:list",
+        "build": "npm run build:submit && npm run build:analysis && npm run build:triage && npm run build:chatbot && npm run build:list && npm run build:register && npm run build:login && npm run build:profile",
         "build:submit": "esbuild submit-complaint/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/submit-complaint/index.js",
         "build:analysis": "esbuild analysis-worker/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/analysis-worker/index.js",
         "build:triage": "esbuild triage-agent/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/triage-agent/index.js",
         "build:chatbot": "esbuild chatbot/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/chatbot/index.js",
-        "build:list": "esbuild list-complaints/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/list-complaints/index.js"
+        "build:list": "esbuild list-complaints/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/list-complaints/index.js",
+        "build:register": "esbuild auth-register/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-register/index.js",
+        "build:login": "esbuild auth-login/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-login/index.js",
+        "build:profile": "esbuild auth-profile/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-profile/index.js"
     },
     "dependencies": {
         "@google/generative-ai": "^0.11.4",
+        "@types/bcryptjs": "^2.4.6",
+        "@types/jsonwebtoken": "^9.0.10",
         "aws-lambda": "^1.0.7",
+        "bcryptjs": "^3.0.3",
+        "jsonwebtoken": "^9.0.3",
         "uuid": "^9.0.1"
     },
     "devDependencies": {
