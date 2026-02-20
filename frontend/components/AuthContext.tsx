@@ -4,9 +4,17 @@ import { useRouter, usePathname } from 'next/navigation';
 
 type Role = 'ADMIN' | 'USER' | null;
 
-interface AuthContextType {
+interface User {
+    userId: string;
+    name: string;
+    email: string;
     role: Role;
-    login: (role: Role) => void;
+}
+
+interface AuthContextType {
+    user: User | null;
+    token: string | null;
+    login: (token: string, user: User) => void;
     logout: () => void;
     isLoading: boolean;
 }
@@ -14,42 +22,65 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [role, setRole] = useState<Role>(null);
+    const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
     const pathname = usePathname();
 
     useEffect(() => {
-        const savedRole = localStorage.getItem('user_role') as Role;
-        if (savedRole) {
-            setRole(savedRole);
+        const savedToken = localStorage.getItem('auth_token');
+        const savedUser = localStorage.getItem('auth_user');
+
+        if (savedToken && savedUser) {
+            setToken(savedToken);
+            setUser(JSON.parse(savedUser));
         }
         setIsLoading(false);
     }, []);
 
-    const login = (newRole: Role) => {
-        setRole(newRole);
-        if (newRole) localStorage.setItem('user_role', newRole);
+    const login = (newToken: string, newUser: User) => {
+        setToken(newToken);
+        setUser(newUser);
+        localStorage.setItem('auth_token', newToken);
+        localStorage.setItem('auth_user', JSON.stringify(newUser));
     };
 
     const logout = () => {
-        setRole(null);
-        localStorage.removeItem('user_role');
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('auth_user');
         router.push('/login');
     };
 
     useEffect(() => {
         if (!isLoading) {
-            if (!role && pathname !== '/login') {
-                router.push('/login');
-            } else if (role === 'USER' && pathname === '/admin') {
-                router.push('/');
+            const publicPaths = ['/login', '/register'];
+            const isPublicPath = publicPaths.includes(pathname);
+
+            if (!token) {
+                if (!isPublicPath) {
+                    router.push('/login');
+                }
+            } else {
+                // User is authenticated
+                if (isPublicPath) {
+                    // Prevent accessing login/register while logged in
+                    router.push(user?.role === 'ADMIN' ? '/admin' : '/');
+                } else if (user?.role === 'USER' && pathname === '/admin') {
+                    // Standard users cannot access admin
+                    router.push('/');
+                } else if (user?.role === 'ADMIN' && pathname === '/') {
+                    // Optional: Redirect admin from home to dashboard for efficiency
+                    router.push('/admin');
+                }
             }
         }
-    }, [role, pathname, isLoading, router]);
+    }, [token, user, pathname, isLoading, router]);
 
     return (
-        <AuthContext.Provider value={{ role, login, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, token, login, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

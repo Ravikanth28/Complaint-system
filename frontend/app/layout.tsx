@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 
 import { AuthProvider } from "../components/AuthContext";
 import Navbar from "../components/Navbar";
+import LayoutGuard from "../components/LayoutGuard";
 
 export default function RootLayout({
     children,
@@ -21,10 +22,12 @@ export default function RootLayout({
         <html lang="en">
             <body className={inter.className}>
                 <AuthProvider>
-                    <Navbar />
-                    <div className="pt-16">
-                        {children}
-                    </div>
+                    <LayoutGuard>
+                        <Navbar />
+                        <div className="pt-16">
+                            {children}
+                        </div>
+                    </LayoutGuard>
                 </AuthProvider>
             </body>
         </html>

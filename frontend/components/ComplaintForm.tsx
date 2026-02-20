@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
-import { Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { Send, AlertCircle, CheckCircle, MapPin, User, Mail, AlignLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from './AuthContext';
 
 export default function ComplaintForm() {
     const [formData, setFormData] = useState({
@@ -11,125 +12,134 @@ export default function ComplaintForm() {
         location: ''
     });
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+    const { token, user } = useAuth();
+
+    const API_URL = 'https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/submit';
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus('loading');
         try {
-            const API_URL = 'https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/submit';
-
-            // Map email to userEmail for backend consistency
             const payload = {
                 title: formData.title,
                 description: formData.description,
-                userName: formData.userName,
-                userEmail: formData.email,
+                userName: formData.userName || user?.name,
+                userEmail: formData.email || user?.email,
                 location: formData.location
             };
 
             const res = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
             if (res.ok) {
                 setStatus('success');
             } else {
-                const errorData = await res.json().catch(() => ({}));
-                console.error('Submission failed:', res.status, errorData);
                 setStatus('error');
             }
         } catch (err) {
-            console.error('Network or CORS error:', err);
+            console.error('Submission failed:', err);
             setStatus('error');
         }
     };
 
-    return (
-        <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl shadow-xl border border-gray-100">
-            <h2 className="text-3xl font-extrabold text-gray-900 mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Submit a Complaint
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input
-                        required
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                        placeholder="John Doe"
-                        onChange={e => setFormData({ ...formData, userName: e.target.value })}
-                    />
+    if (status === 'success') {
+        return (
+            <div className="glass p-12 rounded-[2.5rem] border-white/40 text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+                    <CheckCircle size={40} />
                 </div>
+                <div className="space-y-2">
+                    <h2 className="text-3xl font-black text-gray-900">Success!</h2>
+                    <p className="text-gray-500 font-medium leading-relaxed">
+                        Your complaint has been synchronized with our core system. Our AI will analyze it shortly.
+                    </p>
+                </div>
+                <button
+                    onClick={() => setStatus('idle')}
+                    className="w-full py-4 bg-gray-900 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-gray-800 transition-all shadow-xl shadow-gray-200"
+                >
+                    Submit Another
+                </button>
+            </div>
+        );
+    }
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input
-                            required type="email"
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                            placeholder="john@example.com"
-                            onChange={e => setFormData({ ...formData, email: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+    return (
+        <div className="glass p-10 rounded-[2.5rem] border-white/40 shadow-2xl space-y-8">
+            <div className="space-y-2">
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Express it.</h2>
+                <p className="text-gray-500 font-semibold italic text-sm">We'll handle the rest with speed and precision.</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-4">
+                    <div className="relative group">
+                        <AlignLeft className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={18} />
                         <input
                             required
-                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                            placeholder="Building A, Room 101"
+                            value={formData.title}
+                            onChange={e => setFormData({ ...formData, title: e.target.value })}
+                            className="w-full pl-12 pr-4 py-3.5 bg-white/50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:bg-white outline-none text-gray-900 font-semibold placeholder:text-gray-400 shadow-sm transition-all"
+                            placeholder="Complant Title"
+                        />
+                    </div>
+
+                    <div className="relative group">
+                        <MapPin className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                        <input
+                            required
+                            value={formData.location}
                             onChange={e => setFormData({ ...formData, location: e.target.value })}
+                            className="w-full pl-12 pr-4 py-3.5 bg-white/50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:bg-white outline-none text-gray-900 font-semibold placeholder:text-gray-400 shadow-sm transition-all"
+                            placeholder="Your Location/Department"
+                        />
+                    </div>
+
+                    <div className="relative group">
+                        <textarea
+                            required
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                            className="w-full p-5 bg-white/50 border-2 border-transparent rounded-[2rem] focus:border-blue-500 focus:bg-white outline-none text-gray-900 font-semibold placeholder:text-gray-400 shadow-sm transition-all min-h-[140px]"
+                            placeholder="Describe your grievance in detail..."
                         />
                     </div>
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Complaint Title</label>
-                    <input
-                        required
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                        placeholder="Issue with..."
-                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Details</label>
-                    <textarea
-                        required rows={4}
-                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                        placeholder="Describe your issue in detail..."
-                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    />
-                </div>
+                {status === 'error' && (
+                    <div className="bg-red-50 text-red-600 p-4 rounded-2xl flex items-start gap-3 border border-red-100 font-bold text-sm">
+                        <AlertCircle size={20} className="shrink-0" />
+                        <span>There was an error in transmission. Please retry.</span>
+                    </div>
+                )}
 
                 <button
+                    type="submit"
                     disabled={status === 'loading'}
-                    className={`w-full py-4 rounded-xl font-bold text-white flex items-center justify-center space-x-2 transition-all ${status === 'loading' ? 'bg-gray-400' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:shadow-lg hover:scale-[1.02]'
-                        }`}
+                    className="w-full py-5 bg-blue-600 text-white rounded-[1.5rem] font-black flex items-center justify-center gap-3 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-blue-500/20 group disabled:opacity-50"
                 >
-                    {status === 'loading' ? 'Submitting...' : (
+                    {status === 'loading' ? (
+                        <Loader2 className="animate-spin" size={24} />
+                    ) : (
                         <>
-                            <span>Submit Complaint</span>
-                            <Send size={18} />
+                            <span>Synchronize Data</span>
+                            <Send size={20} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                         </>
                     )}
                 </button>
-
-                {status === 'success' && (
-                    <div className="p-4 bg-green-50 text-green-700 rounded-xl flex items-center space-x-2">
-                        <CheckCircle size={20} />
-                        <span>Complaint submitted successfully!</span>
-                    </div>
-                )}
-                {status === 'error' && (
-                    <div className="p-4 bg-red-50 text-red-700 rounded-xl flex items-center space-x-2">
-                        <AlertCircle size={20} />
-                        <span>Registration failed. Please try again.</span>
-                    </div>
-                )}
             </form>
+
+            <div className="text-center">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    Authorized User Portal v2.0
+                </p>
+            </div>
         </div>
     );
 }
