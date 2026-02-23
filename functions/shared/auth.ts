@@ -7,7 +7,8 @@ export interface AuthUser {
     userId: string;
     email: string;
     name: string;
-    role: 'USER' | 'ADMIN';
+    role: 'USER' | 'ADMIN' | 'DEPARTMENT';
+    department?: string; // e.g., 'PWD', 'Police'
 }
 
 export type AuthenticatedHandler = (
@@ -15,7 +16,7 @@ export type AuthenticatedHandler = (
     user: AuthUser
 ) => Promise<APIGatewayProxyResult>;
 
-export const withAuth = (handler: AuthenticatedHandler, requiredRole?: 'USER' | 'ADMIN') => {
+export const withAuth = (handler: AuthenticatedHandler, requiredRole?: 'USER' | 'ADMIN' | 'DEPARTMENT') => {
     return async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
         try {
             const authHeader = event.headers.Authorization || event.headers.authorization;

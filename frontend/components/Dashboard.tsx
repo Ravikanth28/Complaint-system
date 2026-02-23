@@ -24,6 +24,10 @@ interface Complaint {
     location: string;
     category?: string;
     summary?: string;
+    proofUrl?: string;
+    resolvedBy?: string;
+    resolutionDept?: string;
+    resolutionTimestamp?: string;
 }
 
 export default function AdminDashboard() {
@@ -34,6 +38,9 @@ export default function AdminDashboard() {
     const [chatQuery, setChatQuery] = useState('');
     const [chatResponse, setChatResponse] = useState('');
     const [chatLoading, setChatLoading] = useState(false);
+    const [assigningId, setAssigningId] = useState<string | null>(null);
+
+    const departments = ['PWD', 'Police', 'Fire', 'Health', 'Electricity', 'Water & Sewage', 'Transport', 'Others'];
 
     const fetchComplaints = async () => {
         if (!token) return;
@@ -55,9 +62,40 @@ export default function AdminDashboard() {
         fetchComplaints();
     }, [token]);
 
+    const handleManualAssign = async (complaintId: string, newDept: string) => {
+        if (!token) return;
+        setAssigningId(complaintId);
+        try {
+            const res = await fetch('https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/admin/assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ complaintId, category: newDept })
+            });
+
+            if (!res.ok) throw new Error('Assignment failed');
+
+            // Update local state
+            setComplaints(prev => prev.map(c =>
+                c.complaintId === complaintId ? { ...c, category: newDept } : c
+            ));
+            if (selectedComplaint?.complaintId === complaintId) {
+                setSelectedComplaint(prev => prev ? { ...prev, category: newDept } : null);
+            }
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setAssigningId(null);
+        }
+    };
+
     const handleChat = async () => {
         if (!chatQuery || !token) return;
         setChatLoading(true);
+        setChatResponse('');
+        console.log('Sending AI query:', chatQuery);
         try {
             const res = await fetch('https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/chatbot', {
                 method: 'POST',
@@ -70,10 +108,18 @@ export default function AdminDashboard() {
                     complaintId: selectedComplaint?.complaintId
                 })
             });
+            console.log('Chat response status:', res.status);
             const data = await res.json();
-            setChatResponse(data.answer);
+            console.log('Chat response data:', data);
+
+            if (data.reply) {
+                setChatResponse(data.reply);
+            } else {
+                setChatResponse("Gemini returned an empty response. Please try clarifying your instruction.");
+            }
         } catch (err) {
             console.error('Chat error:', err);
+            setChatResponse("Neural Link failure. Please check your connection or contact the system administrator.");
         } finally {
             setChatLoading(false);
         }
@@ -185,20 +231,40 @@ export default function AdminDashboard() {
                                                 <MessageSquare size={20} />
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-3 mb-1">
+                                                <div className="flex items-center gap-3 mb-1 flex-wrap">
                                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${selectedComplaint?.complaintId === c.complaintId ? 'bg-white/20 text-white' : 'bg-blue-50 text-blue-600'}`}>
                                                         {c.location}
                                                     </span>
                                                     <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${['HIGH', 'CRITICAL'].includes((c.urgency || '').trim().toUpperCase()) ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
                                                         {c.urgency}
                                                     </span>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${selectedComplaint?.complaintId === c.complaintId ? 'bg-indigo-400 text-white' : 'bg-indigo-50 text-indigo-600 font-black'}`}>
+                                                        DEPT: {c.category || 'Triage Pending'}
+                                                    </span>
                                                 </div>
                                                 <h3 className={`font-black tracking-tight truncate ${selectedComplaint?.complaintId === c.complaintId ? 'text-white' : 'text-gray-900'}`}>{c.title}</h3>
-                                                {c.summary && (
-                                                    <p className={`text-[10px] font-semibold line-clamp-1 mt-0.5 ${selectedComplaint?.complaintId === c.complaintId ? 'text-blue-100' : 'text-gray-500'}`}>
-                                                        {c.summary}
-                                                    </p>
-                                                )}
+
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    {c.proofUrl && (
+                                                        <div className="flex items-center gap-1 text-[10px] font-black text-green-500 uppercase">
+                                                            <CheckCircle size={12} />
+                                                            Proof Uploaded
+                                                        </div>
+                                                    )}
+
+                                                    {/* Manual Assignment Dropdown */}
+                                                    <select
+                                                        disabled={assigningId === c.complaintId}
+                                                        value={c.category || ''}
+                                                        onChange={(e) => handleManualAssign(c.complaintId, e.target.value)}
+                                                        className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border-none outline-none cursor-pointer ${selectedComplaint?.complaintId === c.complaintId ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-600'}`}
+                                                    >
+                                                        <option value="" disabled>Re-assign...</option>
+                                                        {departments.map(d => (
+                                                            <option key={d} value={d}>{d}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                             </div>
                                             <div className={`text-right hidden sm:block ${selectedComplaint?.complaintId === c.complaintId ? 'text-blue-100' : 'text-gray-400'}`}>
                                                 <p className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">Submission</p>

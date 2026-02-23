@@ -21,7 +21,10 @@ const submitHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promi
       description: body.description,
       location: body.location,
       timestamp,
-      status: 'RAW'
+      status: 'RAW',
+      category: body.category,
+      urgency: body.urgency,
+      summary: body.summary
     };
 
     await s3.send(new PutObjectCommand({

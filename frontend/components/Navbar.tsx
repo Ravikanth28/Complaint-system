@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
-import { LogOut, Shield, User, Bell, LayoutDashboard, PlusCircle } from 'lucide-react';
+import { LogOut, Shield, User, Bell, LayoutDashboard, PlusCircle, ShieldCheck } from 'lucide-react';
 
 export default function Navbar() {
     const { user, logout } = useAuth();
@@ -25,6 +25,14 @@ export default function Navbar() {
                     <Link href="/" className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white hover:shadow-sm">
                         Submit
                     </Link>
+                    <Link href="/profile" className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white hover:shadow-sm">
+                        Profile
+                    </Link>
+                    {user?.role === 'DEPARTMENT' && (
+                        <Link href="/dept" className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white hover:shadow-sm flex items-center gap-2">
+                            Assignments
+                        </Link>
+                    )}
                     {user?.role === 'ADMIN' && (
                         <Link href="/admin" className="px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:bg-white hover:shadow-sm flex items-center gap-2">
                             Dashboard
@@ -40,7 +48,9 @@ export default function Navbar() {
                         <span className="text-sm font-bold text-gray-900">{user?.name}</span>
                     </div>
                     <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center text-gray-600 border border-white shadow-sm">
-                        {user?.role === 'ADMIN' ? <Shield size={20} /> : <User size={20} />}
+                        {user?.role === 'ADMIN' ? <Shield size={20} /> :
+                            user?.role === 'DEPARTMENT' ? <ShieldCheck size={20} className="text-indigo-600" /> :
+                                <User size={20} />}
                     </div>
                 </div>
 

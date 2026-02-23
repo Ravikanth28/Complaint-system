@@ -8,10 +8,14 @@ export default function RegisterPage() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<'USER' | 'DEPARTMENT'>('USER');
+    const [department, setDepartment] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const router = useRouter();
+
+    const departments = ['PWD', 'Police', 'Fire', 'Health', 'Electricity', 'Water & Sewage', 'Transport', 'Others'];
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,7 +26,7 @@ export default function RegisterPage() {
             const res = await fetch('https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, password })
+                body: JSON.stringify({ name, email, password, role, department: role === 'DEPARTMENT' ? department : null })
             });
 
             const data = await res.json();
@@ -108,6 +112,39 @@ export default function RegisterPage() {
                                     placeholder="Valid Email"
                                 />
                             </div>
+
+                            <div className="flex gap-4 p-1 bg-gray-100/50 rounded-2xl border border-gray-200/50">
+                                <button
+                                    type="button"
+                                    onClick={() => setRole('USER')}
+                                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${role === 'USER' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                >
+                                    Citizen
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRole('DEPARTMENT')}
+                                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${role === 'DEPARTMENT' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+                                >
+                                    Department
+                                </button>
+                            </div>
+
+                            {role === 'DEPARTMENT' && (
+                                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <select
+                                        required
+                                        value={department}
+                                        onChange={(e) => setDepartment(e.target.value)}
+                                        className="w-full px-4 py-4 bg-white/50 border-2 border-transparent rounded-2xl focus:border-indigo-500 focus:bg-white outline-none text-gray-900 font-semibold transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="" disabled>Select Department</option>
+                                        {departments.map((dept) => (
+                                            <option key={dept} value={dept}>{dept}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-4 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />

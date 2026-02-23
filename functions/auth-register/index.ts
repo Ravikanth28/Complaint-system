@@ -8,7 +8,7 @@ const IDENTITY_BUCKET = process.env.IDENTITY_BUCKET_NAME || 'complaint-system-id
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
     try {
-        const { name, email, password } = JSON.parse(event.body || '{}');
+        const { name, email, password, role, department } = JSON.parse(event.body || '{}');
 
         if (!name || !email || !password) {
             return {
@@ -45,7 +45,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             name,
             email: email.toLowerCase(),
             passwordHash,
-            role: 'USER',
+            role: role || 'USER', // Default to USER, but allow DEPARTMENT
+            department: department || null,
             createdAt: new Date().toISOString()
         };
 

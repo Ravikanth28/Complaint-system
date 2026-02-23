@@ -32,7 +32,9 @@ export default function LoginPage() {
             }
 
             login(data.token, data.user);
-            router.push(data.user.role === 'ADMIN' ? '/admin' : '/');
+            if (data.user.role === 'ADMIN') router.push('/admin');
+            else if (data.user.role === 'DEPARTMENT') router.push('/dept');
+            else router.push('/');
         } catch (err: any) {
             setError(err.message);
         } finally {

@@ -9,27 +9,47 @@ const STRUCTURED_BUCKET = process.env.STRUCTURED_BUCKET_NAME || 'complaint-syste
 
 const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise<APIGatewayProxyResult> => {
     try {
-        const { query, complaintId } = JSON.parse(event.body || '{}');
+        const body = JSON.parse(event.body || '{}');
+        const { query, complaintId } = body;
+        console.log(`Chatbot request from ${user.name} (${user.role}): query="${query}", id="${complaintId}"`);
+
+        if (!query) {
+            return {
+                statusCode: 400,
+                headers: { 'Access-Control-Allow-Origin': '*' },
+                body: JSON.stringify({ message: 'Query is required' })
+            };
+        }
 
         let context = "";
         if (complaintId) {
-            const response = await s3.send(new GetObjectCommand({
-                Bucket: STRUCTURED_BUCKET,
-                Key: `analyzed/${complaintId}.json`
-            }));
-            context = await response.Body?.transformToString() || "";
+            try {
+                console.log(`Fetching context for complaint: ${complaintId}`);
+                const response = await s3.send(new GetObjectCommand({
+                    Bucket: STRUCTURED_BUCKET,
+                    Key: `analyzed/${complaintId}.json`
+                }));
+                context = await response.Body?.transformToString() || "";
+                console.log('Context retrieved successfully');
+            } catch (s3Error: any) {
+                console.warn(`Could not fetch context for ${complaintId}: ${s3Error.message}`);
+                // Continue without context if it fails
+            }
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `You are an Admin Assistant for the Complaint System.
-    Context Data: ${context}
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const prompt = `You are an Intelligent Assistant/Triage Bot for the Indian Complaint System.
+    Context Data (Current Case): ${context || "No specific case selected."}
     User Query: ${query}
     Authenticated User: ${user.name} (${user.role})
     
-    Provide insights, response drafts, or escalate as needed.`;
+    If the user asks for triage analysis, provide a JSON response as requested. 
+    Otherwise, provide helpful insights, response drafts, or escalate as needed. Be concise but professional. Use Indian context where applicable.`;
 
+        console.log('Invoking Gemini...');
         const result = await model.generateContent(prompt);
-        const answer = result.response.text();
+        const reply = result.response.text();
+        console.log('Gemini response received');
 
         return {
             statusCode: 200,
@@ -37,7 +57,7 @@ const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ answer })
+            body: JSON.stringify({ reply })
         };
     } catch (error) {
         console.error('Chatbot error:', error);
@@ -49,4 +69,4 @@ const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise
     }
 };
 
-export const handler = withAuth(chatHandler, 'ADMIN');
+export const handler = withAuth(chatHandler, 'USER');

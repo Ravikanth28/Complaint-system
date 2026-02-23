@@ -52,7 +52,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
             {
                 userId: userRecord.userId,
                 email: userRecord.email,
-                role: userRecord.role
+                role: userRecord.role,
+                department: userRecord.department
             },
             JWT_SECRET,
             { expiresIn: '24h' }
@@ -68,7 +69,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
                     userId: userRecord.userId,
                     name: userRecord.name,
                     email: userRecord.email,
-                    role: userRecord.role
+                    role: userRecord.role,
+                    department: userRecord.department
                 }
             })
         };

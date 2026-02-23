@@ -2,13 +2,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
-type Role = 'ADMIN' | 'USER' | null;
+type Role = 'ADMIN' | 'USER' | 'DEPARTMENT' | null;
 
 interface User {
     userId: string;
     name: string;
     email: string;
     role: Role;
+    department?: string;
 }
 
 interface AuthContextType {
@@ -67,12 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // User is authenticated
                 if (isPublicPath) {
                     // Prevent accessing login/register while logged in
-                    router.push(user?.role === 'ADMIN' ? '/admin' : '/');
-                } else if (user?.role === 'USER' && pathname === '/admin') {
-                    // Standard users cannot access admin
+                    if (user?.role === 'ADMIN') router.push('/admin');
+                    else if (user?.role === 'DEPARTMENT') router.push('/dept');
+                    else router.push('/');
+                } else if (user?.role === 'USER' && (pathname === '/admin' || pathname === '/dept')) {
+                    // Standard users cannot access admin or dept
                     router.push('/');
-                } else if (user?.role === 'ADMIN' && pathname === '/') {
-                    // Optional: Redirect admin from home to dashboard for efficiency
+                } else if (user?.role === 'DEPARTMENT' && (pathname === '/admin' || pathname === '/')) {
+                    // Dept users cannot access admin and should be on /dept hub
+                    router.push('/dept');
+                } else if (user?.role === 'ADMIN' && (pathname === '/' || pathname === '/dept')) {
+                    // Optional: Redirect admin from home/dept to dashboard for efficiency
                     router.push('/admin');
                 }
             }

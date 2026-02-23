@@ -18,18 +18,34 @@ export const handler = async (event: S3Event): Promise<void> => {
 
         // GenAI Analysis
         try {
-            const modelIdentifier = "gemini-2.5-flash";
+            // Respect official triage data if provided during submission (Phase 23)
+            if (complaint.category && complaint.urgency && complaint.summary) {
+                console.log(`Complaint ${complaint.complaintId} already has official triage data. Fast-tracking.`);
+                await s3.send(new PutObjectCommand({
+                    Bucket: STRUCTURED_BUCKET,
+                    Key: `analyzed/${complaint.complaintId}.json`,
+                    Body: JSON.stringify({
+                        ...complaint,
+                        status: 'ANALYZED',
+                        fastTracked: true
+                    }),
+                    ContentType: 'application/json'
+                }));
+                continue; // Move to next record
+            }
+
+            const modelIdentifier = "gemini-flash-latest";
             const model = genAI.getGenerativeModel({ model: modelIdentifier });
-            const prompt = `Analyze this complaint:
+            const prompt = `Analyze this Indian civic complaint:
         Title: ${complaint.title}
         Description: ${complaint.description}
         
         Provide output in JSON:
         {
-          "summary": "short summary",
-          "category": "one of [IT Support, Accounts, Hostel, Academic, Transport, Maintenance]",
-          "urgency": "LOW, MEDIUM, HIGH, or CRITICAL (Use CRITICAL for immediate life-safety, fire, or severe infrastructure failure)",
-          "entities": ["list of key entities"]
+          "summary": "short summary focusing on the core issue",
+          "category": "one of [PWD, Police, Fire, Health, Electricity, Water & Sewage, Transport, Others]",
+          "urgency": "LOW, MEDIUM, HIGH, or CRITICAL (Use CRITICAL for immediate life-safety, fire, medical emergencies, or severe public infrastructure failure)",
+          "entities": ["list of key entities like locations, people, or objects involved"]
         }`;
 
             console.log(`Invoking Gemini for complaint: ${complaint.complaintId}`);
