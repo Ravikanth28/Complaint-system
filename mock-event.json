@@ -1,0 +1,14 @@
+{
+    "Records": [
+        {
+            "s3": {
+                "bucket": {
+                    "name": "complaint-system-raw-data-raka123"
+                },
+                "object": {
+                    "key": "complaints/eb082974-6193-41c6-900e-77863dca9eb2.json"
+                }
+            }
+        }
+    ]
+}

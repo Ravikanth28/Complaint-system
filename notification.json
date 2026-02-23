@@ -1,0 +1,20 @@
+{
+    "LambdaFunctionConfigurations": [
+        {
+            "LambdaFunctionArn": "arn:aws:lambda:us-east-1:755633626179:function:analysis-worker",
+            "Events": [
+                "s3:ObjectCreated:*"
+            ],
+            "Filter": {
+                "Key": {
+                    "FilterRules": [
+                        {
+                            "Name": "prefix",
+                            "Value": "complaints/"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

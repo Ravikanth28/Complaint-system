@@ -15,17 +15,33 @@ const listHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise
         const listResponse = await s3.send(listCommand);
         const contents = listResponse.Contents || [];
 
+        const STRUCTURED_BUCKET = process.env.STRUCTURED_BUCKET_NAME || 'complaint-system-analysis-results-raka123';
+
         // Fetch each complaint's content
         const complaints = await Promise.all(contents
             .filter(item => item.Key && item.Key.endsWith('.json'))
             .map(async (item) => {
-                const getCommand = new GetObjectCommand({
-                    Bucket: RAW_BUCKET,
-                    Key: item.Key,
-                });
-                const getResponse = await s3.send(getCommand);
-                const body = await getResponse.Body?.transformToString();
-                return body ? JSON.parse(body) : null;
+                const complaintId = item.Key?.split('/').pop()?.replace('.json', '');
+
+                try {
+                    // Try getting analyzed version first
+                    const getAnalyzed = new GetObjectCommand({
+                        Bucket: STRUCTURED_BUCKET,
+                        Key: `analyzed/${complaintId}.json`,
+                    });
+                    const analyzedResponse = await s3.send(getAnalyzed);
+                    const body = await analyzedResponse.Body?.transformToString();
+                    return body ? JSON.parse(body) : null;
+                } catch (e) {
+                    // Fallback to raw version
+                    const getRaw = new GetObjectCommand({
+                        Bucket: RAW_BUCKET,
+                        Key: item.Key,
+                    });
+                    const rawResponse = await s3.send(getRaw);
+                    const body = await rawResponse.Body?.transformToString();
+                    return body ? { ...JSON.parse(body || '{}'), status: 'PENDING', urgency: 'MEDIUM' } : null;
+                }
             }));
 
         const activeComplaints = complaints.filter(c => c !== null);

@@ -9,7 +9,7 @@ This system allows users to submit complaints which are automatically categorize
 - **AI Triage**: Uses Gemini 1.5 Flash to analyze complaint urgency and sentiment.
 - **Serverless Backend**: Entirely powered by AWS Lambda, S3, and API Gateway.
 - **Admin Dashboard**: Real-time analytics and complaint monitoring.
-- **Role-Based Access**: Secure login system for Admins and Regular Users.
+- **Custom Security**: Proprietary S3-based authentication system with JWT authorization and role-based access (No external identity providers needed).
 
 ## 🛠️ Architecture
 - **Frontend**: Next.js 14, Tailwind CSS, Lucide React, Recharts.
@@ -21,7 +21,8 @@ This system allows users to submit complaints which are automatically categorize
 
 ### Prerequisites
 - AWS CLI configured with appropriate permissions.
-- Node.js 20.x or later.
+- Node.js 20.x or later.+
+---+++++++++++++++-
 - Google Gemini API Key.
 
 ### 1. Backend Configuration

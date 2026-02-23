@@ -17,34 +17,58 @@ export const handler = async (event: S3Event): Promise<void> => {
         const complaint = JSON.parse(bodyContents || '{}');
 
         // GenAI Analysis
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Analyze this complaint:
-    Title: ${complaint.title}
-    Description: ${complaint.description}
-    
-    Provide output in JSON:
-    {
-      "summary": "short summary",
-      "category": "one of [IT Support, Accounts, Hostel, Academic, Transport, Maintenance]",
-      "urgency": "LOW, MEDIUM, or HIGH",
-      "entities": ["list of key entities"]
-    }`;
+        try {
+            const modelIdentifier = "gemini-2.5-flash";
+            const model = genAI.getGenerativeModel({ model: modelIdentifier });
+            const prompt = `Analyze this complaint:
+        Title: ${complaint.title}
+        Description: ${complaint.description}
+        
+        Provide output in JSON:
+        {
+          "summary": "short summary",
+          "category": "one of [IT Support, Accounts, Hostel, Academic, Transport, Maintenance]",
+          "urgency": "LOW, MEDIUM, HIGH, or CRITICAL (Use CRITICAL for immediate life-safety, fire, or severe infrastructure failure)",
+          "entities": ["list of key entities"]
+        }`;
 
-        const result = await model.generateContent(prompt);
-        const aiOutput = JSON.parse(result.response.text());
+            console.log(`Invoking Gemini for complaint: ${complaint.complaintId}`);
+            const result = await model.generateContent(prompt);
+            const responseText = result.response.text();
+            console.log(`Gemini response: ${responseText}`);
+            const aiOutput = parseAIJson(responseText);
 
-        const enrichedComplaint = {
-            ...complaint,
-            analysis: aiOutput,
-            status: 'ANALYZED'
-        };
+            const enrichedComplaint = {
+                ...complaint,
+                analysis: aiOutput,
+                category: aiOutput.category,
+                urgency: aiOutput.urgency,
+                summary: aiOutput.summary,
+                status: 'ANALYZED'
+            };
 
-        // Store in structured bucket
-        await s3.send(new PutObjectCommand({
-            Bucket: STRUCTURED_BUCKET,
-            Key: `analyzed/${complaint.complaintId}.json`,
-            Body: JSON.stringify(enrichedComplaint),
-            ContentType: 'application/json'
-        }));
+            // Store in structured bucket
+            await s3.send(new PutObjectCommand({
+                Bucket: STRUCTURED_BUCKET,
+                Key: `analyzed/${complaint.complaintId}.json`,
+                Body: JSON.stringify(enrichedComplaint),
+                ContentType: 'application/json'
+            }));
+            console.log(`Successfully analyzed and stored: ${complaint.complaintId}`);
+        } catch (error: any) {
+            console.error(`Analysis failed for ${complaint.complaintId}:`, error.message);
+            // Even if AI fails, store basic info to avoid blocking dashboard
+            const fallbackComplaint = {
+                ...complaint,
+                status: 'FAILED',
+                urgency: 'MEDIUM'
+            };
+            await s3.send(new PutObjectCommand({
+                Bucket: STRUCTURED_BUCKET,
+                Key: `analyzed/${complaint.complaintId}.json`,
+                Body: JSON.stringify(fallbackComplaint),
+                ContentType: 'application/json'
+            }));
+        }
     }
 };

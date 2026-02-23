@@ -1,0 +1,17 @@
+{
+    "Name": "normalize-complaints",
+    "Role": "arn:aws:iam::755633626179:role/complaint-system-lambda-role",
+    "Command": {
+        "Name": "glueetl",
+        "ScriptLocation": "s3://complaint-system-raw-data-raka123/scripts/normalize-complaints.py",
+        "PythonVersion": "3"
+    },
+    "DefaultArguments": {
+        "--RAW_BUCKET": "complaint-system-raw-data-raka123",
+        "--PROCESSED_BUCKET": "complaint-system-processed-data-raka123",
+        "--job-language": "python"
+    },
+    "GlueVersion": "4.0",
+    "WorkerType": "G.1X",
+    "NumberOfWorkers": 2
+}
