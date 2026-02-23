@@ -24,9 +24,10 @@ const listUserComplaintsHandler = async (event: APIGatewayProxyEvent, user: Auth
             .filter(item => item.Key && item.Key.endsWith('.json'))
             .map(async (item) => {
                 const complaintId = item.Key?.split('/').pop()?.replace('.json', '');
+                console.log(`Processing item: ${item.Key}, ID: ${complaintId}`);
 
                 try {
-                    // Try getting analyzed version first to get full details
+                    console.log(`Fetching analyzed version for: ${complaintId}`);
                     const getAnalyzed = new GetObjectCommand({
                         Bucket: STRUCTURED_BUCKET,
                         Key: `analyzed/${complaintId}.json`,
@@ -34,14 +35,14 @@ const listUserComplaintsHandler = async (event: APIGatewayProxyEvent, user: Auth
                     const analyzedResponse = await s3.send(getAnalyzed);
                     const body = await analyzedResponse.Body?.transformToString();
                     const data = body ? JSON.parse(body) : null;
+                    console.log(`Analyzed data for ${complaintId}:`, data ? `Found (UID: ${data.userId})` : 'Null');
 
-                    // Filter by authenticated user's ID
                     if (data && data.userId === user.userId) {
                         return data;
                     }
                     return null;
-                } catch (e) {
-                    // Fallback to raw version and check userId
+                } catch (e: any) {
+                    console.log(`Analyzed version not found or error for ${complaintId}, falling back to raw. Error: ${e.message}`);
                     const getRaw = new GetObjectCommand({
                         Bucket: RAW_BUCKET,
                         Key: item.Key,
@@ -49,6 +50,7 @@ const listUserComplaintsHandler = async (event: APIGatewayProxyEvent, user: Auth
                     const rawResponse = await s3.send(getRaw);
                     const body = await rawResponse.Body?.transformToString();
                     const data = body ? JSON.parse(body) : null;
+                    console.log(`Raw data for ${complaintId}:`, data ? `Found (UID: ${data.userId})` : 'Null');
 
                     if (data && data.userId === user.userId) {
                         return { ...data, status: data.status || 'PENDING', urgency: data.urgency || 'MEDIUM' };
@@ -58,6 +60,7 @@ const listUserComplaintsHandler = async (event: APIGatewayProxyEvent, user: Auth
             }));
 
         const userComplaints = complaints.filter(c => c !== null);
+        console.log(`Found ${userComplaints.length} complaints for user ${user.userId}`);
 
         return {
             statusCode: 200,

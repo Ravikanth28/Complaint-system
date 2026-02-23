@@ -34,7 +34,7 @@ export const handler = async (event: S3Event): Promise<void> => {
                 continue; // Move to next record
             }
 
-            const modelIdentifier = "gemini-flash-latest";
+            const modelIdentifier = "gemini-1.5-flash";
             const model = genAI.getGenerativeModel({ model: modelIdentifier });
             const prompt = `Analyze this Indian civic complaint:
         Title: ${complaint.title}

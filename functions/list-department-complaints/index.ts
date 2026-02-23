@@ -37,8 +37,9 @@ const listDeptComplaintsHandler = async (event: APIGatewayProxyEvent, user: Auth
                     const body = await response.Body?.transformToString();
                     const data = body ? JSON.parse(body) : null;
 
-                    // Filter by department (ensure it matches the AI triage category)
-                    if (data && data.category === user.department) {
+                    // Filter by department (case-insensitive)
+                    if (data && data.category && user.department &&
+                        data.category.toLowerCase() === user.department.toLowerCase()) {
                         return data;
                     }
                     return null;

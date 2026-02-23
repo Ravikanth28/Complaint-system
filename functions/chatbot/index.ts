@@ -9,6 +9,7 @@ const STRUCTURED_BUCKET = process.env.STRUCTURED_BUCKET_NAME || 'complaint-syste
 
 const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise<APIGatewayProxyResult> => {
     try {
+        console.log('Chatbot handler started');
         const body = JSON.parse(event.body || '{}');
         const { query, complaintId } = body;
         console.log(`Chatbot request from ${user.name} (${user.role}): query="${query}", id="${complaintId}"`);
@@ -33,11 +34,12 @@ const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise
                 console.log('Context retrieved successfully');
             } catch (s3Error: any) {
                 console.warn(`Could not fetch context for ${complaintId}: ${s3Error.message}`);
-                // Continue without context if it fails
             }
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        console.log('Configuring Gemini model...');
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const prompt = `You are an Intelligent Assistant/Triage Bot for the Indian Complaint System.
     Context Data (Current Case): ${context || "No specific case selected."}
     User Query: ${query}
@@ -46,25 +48,50 @@ const chatHandler = async (event: APIGatewayProxyEvent, user: AuthUser): Promise
     If the user asks for triage analysis, provide a JSON response as requested. 
     Otherwise, provide helpful insights, response drafts, or escalate as needed. Be concise but professional. Use Indian context where applicable.`;
 
-        console.log('Invoking Gemini...');
-        const result = await model.generateContent(prompt);
-        const reply = result.response.text();
-        console.log('Gemini response received');
+        console.log('Invoking Gemini API...');
+        try {
+            const result = await model.generateContent(prompt);
+            const reply = result.response.text();
+            console.log('Gemini raw response:', reply);
 
-        return {
-            statusCode: 200,
-            headers: {
-                'Access-Control-Allow-Origin': '*',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ reply })
-        };
-    } catch (error) {
-        console.error('Chatbot error:', error);
+            // If it looks like a triage request, try to parse it
+            let structuredResponse: any = { reply };
+            if (query.toLowerCase().includes('json') || query.toLowerCase().includes('triage')) {
+                const jsonMatch = reply.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    try {
+                        const parsed = JSON.parse(jsonMatch[0]);
+                        structuredResponse = { ...structuredResponse, ...parsed };
+                        console.log('Parsed triage data from AI:', parsed);
+                    } catch (e) {
+                        console.warn('AI returned text that looked like JSON but was unparsable:', e);
+                    }
+                }
+            }
+
+            return {
+                statusCode: 200,
+                headers: {
+                    'Access-Control-Allow-Origin': '*',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(structuredResponse)
+            };
+        } catch (geminiError: any) {
+            console.error('Gemini API Error:', geminiError);
+            throw geminiError;
+        }
+    } catch (error: any) {
+        console.error('CRITICAL Chatbot error:', error);
+        console.error('Error Stack:', error.stack);
         return {
             statusCode: 500,
             headers: { 'Access-Control-Allow-Origin': '*' },
-            body: JSON.stringify({ message: 'Internal Server Error' })
+            body: JSON.stringify({
+                message: 'Internal Server Error',
+                error: error.message,
+                stack: error.stack
+            })
         };
     }
 };

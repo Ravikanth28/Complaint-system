@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "AWS Lambda functions for the complaint system",
     "scripts": {
-        "build": "npm run build:submit && npm run build:analysis && npm run build:triage && npm run build:chatbot && npm run build:list && npm run build:register && npm run build:login && npm run build:profile",
+        "build": "npm run build:submit && npm run build:analysis && npm run build:triage && npm run build:chatbot && npm run build:list && npm run build:register && npm run build:login && npm run build:profile && npm run build:dept:list && npm run build:dept:resolve && npm run build:user:list",
         "build:submit": "esbuild submit-complaint/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/submit-complaint/index.js",
         "build:analysis": "esbuild analysis-worker/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/analysis-worker/index.js",
         "build:triage": "esbuild triage-agent/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/triage-agent/index.js",
@@ -11,10 +11,13 @@
         "build:list": "esbuild list-complaints/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/list-complaints/index.js",
         "build:register": "esbuild auth-register/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-register/index.js",
         "build:login": "esbuild auth-login/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-login/index.js",
-        "build:profile": "esbuild auth-profile/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-profile/index.js"
+        "build:profile": "esbuild auth-profile/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/auth-profile/index.js",
+        "build:dept:list": "esbuild list-department-complaints/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/list-department-complaints/index.js",
+        "build:dept:resolve": "esbuild resolve-complaint/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/resolve-complaint/index.js",
+        "build:user:list": "esbuild list-user-complaints/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/list-user-complaints/index.js"
     },
     "dependencies": {
-        "@google/generative-ai": "^0.11.4",
+        "@google/generative-ai": "^0.24.1",
         "@types/bcryptjs": "^2.4.6",
         "@types/jsonwebtoken": "^9.0.10",
         "aws-lambda": "^1.0.7",

@@ -25,7 +25,7 @@ interface Complaint {
     urgency: string;
     category: string;
     location: string;
-    createdAt: string;
+    timestamp: string;
     summary?: string;
 }
 
@@ -40,18 +40,25 @@ export default function Profile() {
         setLoading(true);
         setError(null);
         try {
+            console.log('Fetching complaints from:', 'https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/user/complaints');
             const res = await fetch('https://xmq8p81c9g.execute-api.us-east-1.amazonaws.com/user/complaints', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            if (!res.ok) throw new Error('Failed to fetch complaints');
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || `Server responded with ${res.status}: ${res.statusText}`);
+            }
             const data = await res.json();
+            if (!Array.isArray(data)) throw new Error('Invalid data format received from server');
+
             setComplaints(data.sort((a: Complaint, b: Complaint) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
             ));
         } catch (err: any) {
-            setError(err.message);
+            console.error('Profile fetch error:', err);
+            setError(err.message === 'Failed to fetch' ? 'Network Error: Check your connection or CORS settings' : err.message);
         } finally {
             setLoading(false);
         }
@@ -144,6 +151,17 @@ export default function Profile() {
                 ))}
             </div>
 
+            {/* Error Message */}
+            {error && (
+                <div className="glass p-6 rounded-[2rem] border-red-200 bg-red-50 text-red-600 flex items-center gap-4">
+                    <AlertCircle size={24} />
+                    <div>
+                        <p className="font-black uppercase tracking-widest text-xs">Sync Error</p>
+                        <p className="font-medium">{error}</p>
+                    </div>
+                </div>
+            )}
+
             {/* Complaints List */}
             <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -185,7 +203,7 @@ export default function Profile() {
                                         </span>
                                         <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
                                             <Calendar size={12} />
-                                            <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                            <span>{new Date(c.timestamp).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                     <h3 className="text-xl font-extrabold text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{c.title}</h3>

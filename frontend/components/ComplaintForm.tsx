@@ -52,12 +52,19 @@ export default function ComplaintForm() {
             const data = await res.json();
             console.log('Triage response data:', data);
 
-            // Parse AI response if it's wrapped in text
+            // Prefer already parsed data from Lambda (Phase 29 update)
+            if (data.category && data.urgency) {
+                console.log('Using pre-parsed triage data:', data);
+                setTriageData(data);
+                return;
+            }
+
+            // Fallback: Parse AI response if it's wrapped in text
             const text = data.reply || '';
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
-                console.log('Parsed Triage Data:', parsed);
+                console.log('Parsed Triage Data from text:', parsed);
                 setTriageData(parsed);
             } else {
                 console.warn('No JSON found in AI reply:', text);
