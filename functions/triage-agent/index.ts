@@ -1,7 +1,7 @@
 import { S3Event } from 'aws-lambda';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { parseAIJson } from '../../shared/utils';
+import { parseAIJson } from '../shared/utils';
 
 const s3 = new S3Client({});
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');

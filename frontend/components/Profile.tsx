@@ -25,7 +25,7 @@ interface Complaint {
     urgency: string;
     category: string;
     location: string;
-    createdAt: string;
+    timestamp: string;
     summary?: string;
 }
 
@@ -48,7 +48,7 @@ export default function Profile() {
             if (!res.ok) throw new Error('Failed to fetch complaints');
             const data = await res.json();
             setComplaints(data.sort((a: Complaint, b: Complaint) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
             ));
         } catch (err: any) {
             setError(err.message);
@@ -63,13 +63,15 @@ export default function Profile() {
 
     const filteredComplaints = complaints.filter(c => {
         if (filter === 'ALL') return true;
+        if (filter === 'RESOLVED') return c.status === 'RESOLVED';
+        if (filter === 'PENDING') return ['RAW', 'ANALYZED', 'TRIAGED', 'PENDING'].includes(c.status);
         return c.status === filter;
     });
 
     const stats = {
         total: complaints.length,
         resolved: complaints.filter(c => c.status === 'RESOLVED').length,
-        pending: complaints.filter(c => c.status === 'PENDING' || c.status === 'ANALYZED').length
+        pending: complaints.filter(c => ['RAW', 'ANALYZED', 'TRIAGED', 'PENDING'].includes(c.status)).length
     };
 
     const getStatusColor = (status: string) => {
@@ -185,7 +187,7 @@ export default function Profile() {
                                         </span>
                                         <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-bold uppercase tracking-widest">
                                             <Calendar size={12} />
-                                            <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+                                            <span>{new Date(c.timestamp).toLocaleDateString()}</span>
                                         </div>
                                     </div>
                                     <h3 className="text-xl font-extrabold text-gray-900 tracking-tight group-hover:text-blue-600 transition-colors uppercase">{c.title}</h3>

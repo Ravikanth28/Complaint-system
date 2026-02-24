@@ -27,7 +27,7 @@ interface Complaint {
     urgency: string;
     category: string;
     location: string;
-    createdAt: string;
+    timestamp: string;
     summary?: string;
     proofUrl?: string;
 }
@@ -52,7 +52,7 @@ export default function DeptPortal() {
             if (!res.ok) throw new Error('Failed to fetch department tasks');
             const data = await res.json();
             setComplaints(data.sort((a: Complaint, b: Complaint) =>
-                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
             ));
         } catch (err: any) {
             setError(err.message);
