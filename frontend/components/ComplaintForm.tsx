@@ -170,7 +170,7 @@ export default function ComplaintForm() {
                             value={formData.title}
                             onChange={e => setFormData({ ...formData, title: e.target.value })}
                             className="w-full pl-12 pr-4 py-3.5 bg-white/50 border-2 border-transparent rounded-2xl focus:border-blue-500 focus:bg-white outline-none text-gray-900 font-semibold placeholder:text-gray-400 shadow-sm transition-all"
-                            placeholder="Complant Title"
+                            placeholder="Complaint Title"
                         />
                     </div>
 

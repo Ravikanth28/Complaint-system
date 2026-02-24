@@ -23,6 +23,7 @@
         "aws-lambda": "^1.0.7",
         "bcryptjs": "^3.0.3",
         "jsonwebtoken": "^9.0.3",
+        "natural": "^8.1.0",
         "uuid": "^9.0.1"
     },
     "devDependencies": {

@@ -1,7 +1,8 @@
 import { S3Event } from 'aws-lambda';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { parseAIJson } from '../../shared/utils';
+import { parseAIJson } from '../shared/utils';
+import { classifyComplaint, classifyUrgency } from '../shared/classifier';
 
 const s3 = new S3Client({});
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -35,32 +36,45 @@ export const handler = async (event: S3Event): Promise<void> => {
             }
 
             const modelIdentifier = "gemini-1.5-flash";
+
+            // 1. Perform Local ML Triage (High-Accuracy Keyword/Bayes)
+            const predictedCategory = classifyComplaint(complaint.description);
+            const predictedUrgency = classifyUrgency(complaint.description);
+
+            console.log(`Local ML Prediction - Category: ${predictedCategory}, Urgency: ${predictedUrgency}`);
+
+            // 2. Use Gemini for Intelligent Summarization and Validation
             const model = genAI.getGenerativeModel({ model: modelIdentifier });
-            const prompt = `Analyze this Indian civic complaint:
-        Title: ${complaint.title}
-        Description: ${complaint.description}
-        
-        Provide output in JSON:
-        {
-          "summary": "short summary focusing on the core issue",
-          "category": "one of [PWD, Police, Fire, Health, Electricity, Water & Sewage, Transport, Others]",
-          "urgency": "LOW, MEDIUM, HIGH, or CRITICAL (Use CRITICAL for immediate life-safety, fire, medical emergencies, or severe public infrastructure failure)",
-          "entities": ["list of key entities like locations, people, or objects involved"]
-        }`;
+
+            const prompt = `Analyze this civic complaint from India and provide a concise, professional summary for officials.
+            
+            Title: ${complaint.title}
+            Description: ${complaint.description}
+            Suggested Category: ${predictedCategory}
+            
+            Respond ONLY with a JSON object:
+            {
+              "summary": "A 1-2 sentence professional summary of the issue.",
+              "isLegitimate": true/false (if it's a real grievance or spam),
+              "aiImprovement": "A suggestion to the user on what more info is needed, if any (optional)"
+            }`;
 
             console.log(`Invoking Gemini for complaint: ${complaint.complaintId}`);
             const result = await model.generateContent(prompt);
-            const responseText = result.response.text();
-            console.log(`Gemini response: ${responseText}`);
-            const aiOutput = parseAIJson(responseText);
+            const response = await result.response;
+            const aiData = parseAIJson(response.text());
+            console.log(`Gemini response: ${JSON.stringify(aiData)}`);
 
+            // 3. Merge Local ML with AI Reasoning
             const enrichedComplaint = {
                 ...complaint,
-                analysis: aiOutput,
-                category: aiOutput.category,
-                urgency: aiOutput.urgency,
-                summary: aiOutput.summary,
-                status: 'ANALYZED'
+                category: predictedCategory,
+                urgency: predictedUrgency,
+                summary: aiData.summary || complaint.description.substring(0, 100) + "...",
+                isLegitimate: aiData.isLegitimate ?? true,
+                aiSuggestions: aiData.aiImprovement || null,
+                status: 'ANALYZED',
+                timestamp: new Date().toISOString()
             };
 
             // Store in structured bucket

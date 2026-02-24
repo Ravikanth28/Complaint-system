@@ -54,7 +54,7 @@ export default function Profile() {
             if (!Array.isArray(data)) throw new Error('Invalid data format received from server');
 
             setComplaints(data.sort((a: Complaint, b: Complaint) =>
-                new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+                new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()
             ));
         } catch (err: any) {
             console.error('Profile fetch error:', err);
@@ -70,13 +70,15 @@ export default function Profile() {
 
     const filteredComplaints = complaints.filter(c => {
         if (filter === 'ALL') return true;
+        if (filter === 'RESOLVED') return c.status === 'RESOLVED';
+        if (filter === 'PENDING') return ['RAW', 'ANALYZED', 'TRIAGED', 'PENDING'].includes(c.status);
         return c.status === filter;
     });
 
     const stats = {
         total: complaints.length,
         resolved: complaints.filter(c => c.status === 'RESOLVED').length,
-        pending: complaints.filter(c => c.status === 'PENDING' || c.status === 'ANALYZED').length
+        pending: complaints.filter(c => ['RAW', 'ANALYZED', 'TRIAGED', 'PENDING'].includes(c.status)).length
     };
 
     const getStatusColor = (status: string) => {
